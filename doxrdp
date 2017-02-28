@@ -1,0 +1,196 @@
+#!/bin/sh
+#
+# This script builds image which runs XRDP on Desktop Environment.
+#
+# Copyright (C) 2017 Hiroo MATSUMOTO <hiroom2.mail@gmail.com>
+#
+
+[ -z "${DOXRDP_PREFIX}" ] && DOXRDP_PREFIX="doxrdp"
+
+DOXRDP_TOP_DIR=$(dirname "${0}")
+DOXRDP_DOCKER_DIR="${DOXRDP_TOP_DIR}/docker"
+DOXRDP_BUILD_DIR="${DOXRDP_TOP_DIR}/build"
+DOXRDP_DOCKER_IPADDR="{{ .NetworkSettings.IPAddress }}"
+DOXRDP_RDESKTOP_GEOMETRY="1024x768"
+DOXRDP_RDESKTOP_USER=doxrdp
+DOXRDP_RDESKTOP_PASSWORD=doxrdp
+DOXRDP_RDESKTOP_RETRY=10
+
+doxrdp_error()
+{
+  echo "$@" 1>&2
+  exit 1
+}
+
+doxrdp_usage()
+{
+  cat <<EOF
+usage:
+    $ doxrdp list            # Show distribution.
+    $ doxrdp build           # Build all distribution.
+    $ doxrdp build <dist>    # Build distribution.
+    $ doxrdp remove          # Remove all distribution.
+    $ doxrdp remove <dist>   # Remove distribution.
+    $ doxrdp clean           # Clean cache images.
+    $ doxrdp rdesktop <dist> # Run rdesktop to distribution.
+EOF
+  exit 0
+}
+
+doxrdp_need_rdesktop()
+{
+  DOXRDP_RDESKTOP=$(which rdesktop 2> /dev/null) || \
+    doxrdp_error "Need rdesktop"
+}
+
+doxrdp_dir_to_name()
+{
+  echo "${1}" | sed -e "s;${DOXRDP_DOCKER_DIR}/;;g" -e 's;/;-;g'
+}
+
+doxrdp_name_to_dir()
+{
+  printf "%s/" "${DOXRDP_DOCKER_DIR}"
+  echo "${1}" | sed -e 's;_[^_]*$;;g' -e 's;-;/;'
+}
+
+doxrdp_run_list()
+{
+  local file files
+
+  files=$(find "${DOXRDP_DOCKER_DIR}" -type f -name Dockerfile)
+
+  for file in ${files}; do
+    local dir dist desktop
+
+    dir=$(dirname "${file}")
+    dist=$(doxrdp_dir_to_name "${dir}")
+
+    if [ -f "${dir}/desktop.txt" ]; then
+      while read desktop; do
+        echo "${dist}_${desktop}"
+      done < "${dir}/desktop.txt"
+    else
+      echo "${dist}"
+    fi
+  done
+}
+
+doxrdp_build_image()
+{
+  local name dir desktop result
+
+  name="${DOXRDP_PREFIX}-${1}"
+  dir=$(doxrdp_name_to_dir "${1}")
+  desktop=$(echo "${1}" | awk -F'_' '{ print $2 }')
+
+  printf "docker build %s: " "${name}"
+  docker build --no-cache --rm --network=host "${dir}" \
+         -t "${name}" --build-arg desktop="${desktop}" \
+         > "${DOXRDP_BUILD_DIR}/${name}.log" 2>&1 && \
+    result="PASS" || result="FAIL"
+  printf "%s\n" "${result}"
+
+  [ "${result}" = "PASS" ]
+}
+
+doxrdp_check_list()
+{
+  local dist
+
+  for dist in ${DOXRDP_BUILD_DIST}; do
+    [ "${1}" = "${dist}" ] && return 0
+  done
+
+  return 1
+}
+
+doxrdp_run_clean()
+{
+  local img imgs
+  imgs=$(docker images -f "dangling=true" -q)
+  for img in ${imgs}; do
+    docker rmi "${img}"
+  done
+}
+
+doxrdp_run_build()
+{
+  local dist dists retval=0
+
+  mkdir -p "${DOXRDP_BUILD_DIR}"
+  DOXRDP_BUILD_DIST="$(doxrdp_run_list)"
+
+  [ $# -ne 0 ] && dists="$*" || dists="${DOXRDP_BUILD_DIST}"
+
+  for dist in ${dists}; do
+    doxrdp_check_list "${dist}" || \
+      doxrdp_error "No such dist: ${dist}"
+    doxrdp_build_image "${dist}" || retval=1
+  done
+  return ${retval}
+}
+
+doxrdp_run_remove()
+{
+  DOXRDP_IMAGE=$(docker images | grep "^${DOXRDP_PREFIX}" | \
+                    awk '{ print $1 }' | \
+                    sed -e "s/${DOXRDP_PREFIX}-//g")
+  [ -z "${DOXRDP_IMAGE}" ] && return 0
+
+  local img imgs
+  [ $# -ne 0 ] && imgs=$* || imgs="${DOXRDP_IMAGE}"
+  for img in ${imgs}; do
+    docker rmi "${DOXRDP_PREFIX}-${img}"
+  done
+}
+
+doxrdp_rdesktop()
+{
+  local retry=0
+  while [ "${retry}" -lt "${DOXRDP_RDESKTOP_RETRY}" ]; do
+    ${DOXRDP_RDESKTOP} \
+      -g "${DOXRDP_RDESKTOP_GEOMETRY}" \
+      -u "${DOXRDP_RDESKTOP_USER}" \
+      -p "${DOXRDP_RDESKTOP_PASSWORD}" \
+      "${1}" \
+      > /dev/null 2>&1
+    [ $? -ne 76 ] && return 0
+    sleep 1
+    retry=$((retry + 1))
+  done
+  return 1
+}
+
+doxrdp_run_rdesktop()
+{
+  doxrdp_need_rdesktop
+  [ $# -eq 0 ] && doxrdp_usage
+
+  [ -z "$(docker images -q "${DOXRDP_PREFIX}-${1}")" ] && \
+    doxrdp_rdesktop_error "No such image: ${1}"
+
+  local id ipaddr
+
+  id=$(docker run --rm -d "${DOXRDP_PREFIX}-${1}") || \
+    doxrdp_rdesktop_error "docker run error"
+  trap 'docker stop "${id}" > /dev/null 2>&1' INT
+
+  ipaddr=$(docker inspect --format="${DOXRDP_DOCKER_IPADDR}" "${id}")
+  doxrdp_rdesktop "${ipaddr}"
+  docker stop "${id}" > /dev/null 2>&1
+}
+
+doxrdp_main()
+{
+  [ $# -eq 0 ] && doxrdp_usage
+
+  local cmd
+  cmd=${1}
+  shift
+  command -V "doxrdp_run_${cmd}" > /dev/null 2>&1 || \
+    doxrdp_error "Not supported command: ${cmd}"
+  "doxrdp_run_${cmd}" "$@"
+}
+
+doxrdp_main "$@"

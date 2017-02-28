@@ -1,0 +1,6 @@
+unity
+classic
+xubuntu
+mate
+lubuntu
+kubuntu
