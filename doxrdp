@@ -168,12 +168,12 @@ doxrdp_run_rdesktop()
   [ $# -eq 0 ] && doxrdp_usage
 
   [ -z "$(docker images -q "${DOXRDP_PREFIX}-${1}")" ] && \
-    doxrdp_rdesktop_error "No such image: ${1}"
+    doxrdp_error "No such image: ${1}"
 
   local id ipaddr
 
   id=$(docker run --rm -d "${DOXRDP_PREFIX}-${1}") || \
-    doxrdp_rdesktop_error "docker run error"
+    doxrdp_error "docker run error"
   trap 'docker stop "${id}" > /dev/null 2>&1' INT
 
   ipaddr=$(docker inspect --format="${DOXRDP_DOCKER_IPADDR}" "${id}")
