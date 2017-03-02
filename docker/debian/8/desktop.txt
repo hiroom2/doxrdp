@@ -1,0 +1,5 @@
+gnome
+xfce
+mate
+lxde
+kde

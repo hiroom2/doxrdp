@@ -26,3 +26,4 @@ like docker/ubuntu/1604/Dockerfile.
 ## Support distribution
 
 * [Ubuntu 16.04](docker/ubuntu/1604/README.md)
+* [Debian 8](docker/debian/8/README.md)
