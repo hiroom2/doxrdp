@@ -5,6 +5,11 @@ Desktop Environment. Because doxrdp script is POSIX shell, if you use
 Windows as docker host, you need to use Dockerfile in docker directory
 like docker/ubuntu/1604/Dockerfile.
 
+doxrdp uses --squash option [1] of Docker Experimental Features [2].
+
+[1]: https://github.com/docker/docker/pull/22641
+[2]: https://github.com/docker/docker/tree/master/experimental
+
 ## Usage
 
     $ doxrdp list            # Show distribution.

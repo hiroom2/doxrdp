@@ -43,6 +43,12 @@ doxrdp_need_rdesktop()
     doxrdp_error "Need rdesktop"
 }
 
+doxrdp_need_docker_experimental()
+{
+  [ "$(docker version -f '{{.Server.Experimental}}')" = true ] || \
+    doxrdp_error "Need docker experimental"
+}
+
 doxrdp_dir_to_name()
 {
   echo "${1}" | sed -e "s;${DOXRDP_DOCKER_DIR}/;;g" -e 's;/;-;g'
@@ -85,7 +91,7 @@ doxrdp_build_image()
   desktop=$(echo "${1}" | awk -F'_' '{ print $2 }')
 
   printf "docker build %s: " "${name}"
-  docker build --no-cache --rm --network=host "${dir}" \
+  docker build --squash --no-cache --rm --network=host "${dir}" \
          -t "${name}" --build-arg desktop="${desktop}" \
          > "${DOXRDP_BUILD_DIR}/${name}.log" 2>&1 && \
     result="PASS" || result="FAIL"
@@ -116,6 +122,8 @@ doxrdp_run_clean()
 
 doxrdp_run_build()
 {
+  doxrdp_need_docker_experimental
+
   local dist dists retval=0
 
   mkdir -p "${DOXRDP_BUILD_DIR}"
