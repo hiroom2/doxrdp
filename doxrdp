@@ -57,7 +57,7 @@ doxrdp_dir_to_name()
 doxrdp_name_to_dir()
 {
   printf "%s/" "${DOXRDP_DOCKER_DIR}"
-  echo "${1}" | sed -e 's;_[^_]*$;;g' -e 's;-;/;'
+  echo "${1}" | sed -e 's;-[^-]*$;;g' -e 's;-;/;'
 }
 
 doxrdp_run_list()
@@ -74,7 +74,7 @@ doxrdp_run_list()
 
     if [ -f "${dir}/desktop.txt" ]; then
       while read desktop; do
-        echo "${dist}_${desktop}"
+        echo "${dist}-${desktop}"
       done < "${dir}/desktop.txt"
     else
       echo "${dist}"
@@ -88,7 +88,7 @@ doxrdp_build_image()
 
   name="${DOXRDP_PREFIX}-${1}"
   dir=$(doxrdp_name_to_dir "${1}")
-  desktop=$(echo "${1}" | awk -F'_' '{ print $2 }')
+  desktop=$(echo "${1}" | sed -e 's/.*-\([^-]*\)$/\1/g')
 
   printf "docker build %s: " "${name}"
   docker build --squash --no-cache --rm --network=host "${dir}" \

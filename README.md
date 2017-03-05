@@ -22,9 +22,9 @@ doxrdp uses --squash option [1] of Docker Experimental Features [2].
 
 ## Example
 
-    $ doxrdp build ubuntu-1604_xubuntu
-    $ doxrdp rdesktop ubuntu-1604_xubuntu &
-    $ doxrdp rdesktop ubuntu-1604_xubuntu
+    $ doxrdp build ubuntu-1604-xubuntu
+    $ doxrdp rdesktop ubuntu-1604-xubuntu &
+    $ doxrdp rdesktop ubuntu-1604-xubuntu
 
 ![doxrdp](img/doxrdp.png)
 

@@ -34,10 +34,10 @@ including GNOME3, Xfce4, MATE, LXDE and KDE Plasma.
 
 ## Example
 
-    $ docker build -t debian-8-xrdp_gnome . \
+    $ docker build -t doxrdp-debian-8-gnome . \
        --build-arg desktop=gnome --build-arg user=myname \
        --build-arg password=mypassword
-    $ id=$(docker run -d debian-8-xrdp_gnome)
+    $ id=$(docker run -d doxrdp-debian-8-gnome)
     $ ipaddr=$(docker inspect \
        --format="{{ .NetworkSettings.IPAddress }}" "${id}")
     $ # XRDP startup needs about 5 seconds.

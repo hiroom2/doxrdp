@@ -33,10 +33,10 @@ including Unity, Gnome classic like, Xfce4, MATE, LXDE and KDE Plasma.
 
 ## Example
 
-    $ docker build -t ubuntu-1604-xrdp-unity . \
+    $ docker build -t doxrdp-ubuntu-1604-unity . \
        --build-arg desktop=unity --build-arg user=myname \
        --build-arg password=mypassword
-    $ id=$(docker run -d ubuntu-1604-xrdp-unity)
+    $ id=$(docker run -d doxrdp-ubuntu-1604-unity)
     $ ipaddr=$(docker inspect \
        --format="{{ .NetworkSettings.IPAddress }}" "${id}")
     $ # XRDP startup needs about 5 seconds.
