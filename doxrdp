@@ -15,6 +15,9 @@ DOXRDP_RDESKTOP_GEOMETRY="1024x768"
 DOXRDP_RDESKTOP_USER=doxrdp
 DOXRDP_RDESKTOP_PASSWORD=doxrdp
 DOXRDP_RDESKTOP_RETRY=10
+DOXRDP_USE_SYSTEMD="
+centos-7
+"
 
 doxrdp_error()
 {
@@ -170,6 +173,15 @@ doxrdp_rdesktop()
   return 1
 }
 
+doxrdp_use_systemd()
+{
+  local img
+  for img in ${DOXRDP_USE_SYSTEMD}; do
+    [ "${1#${img}}" != "${1}" ] && return 0
+  done
+  return 1
+}
+
 doxrdp_run_rdesktop()
 {
   doxrdp_need_rdesktop
@@ -180,8 +192,16 @@ doxrdp_run_rdesktop()
 
   local id ipaddr
 
-  id=$(docker run --rm -d "${DOXRDP_PREFIX}-${1}") || \
-    doxrdp_error "docker run error"
+  doxrdp_use_systemd "${1}"
+  if [ $? -eq 0 ]; then
+    id=$(docker run --rm -d --cap-add=SYS_ADMIN --tmpfs /tmp \
+                --tmpfs /run -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+                "${DOXRDP_PREFIX}-${1}") || \
+      doxrdp_error "docker run error"
+  else
+    id=$(docker run --rm -d "${DOXRDP_PREFIX}-${1}") || \
+      doxrdp_error "docker run error"
+  fi
   trap 'docker stop "${id}" > /dev/null 2>&1' INT
 
   ipaddr=$(docker inspect --format="${DOXRDP_DOCKER_IPADDR}" "${id}")
