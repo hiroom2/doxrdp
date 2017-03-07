@@ -17,6 +17,7 @@ DOXRDP_RDESKTOP_PASSWORD=doxrdp
 DOXRDP_RDESKTOP_RETRY=10
 DOXRDP_USE_SYSTEMD="
 centos-7
+fedora-24
 "
 
 doxrdp_error()

@@ -33,3 +33,4 @@ doxrdp uses --squash option [1] of Docker Experimental Features [2].
 * [Ubuntu 16.04](docker/ubuntu/1604/README.md)
 * [Debian 8](docker/debian/8/README.md)
 * [CentOS 7](docker/centos/7/README.md)
+* [Fedora 24](docker/fedora/24/README.md)
